@@ -9,7 +9,6 @@ const {
 
 const querystring = require('querystring')
 const WebSocket = require('websocket').w3cwebsocket
-const Timer = require('./timer')
 const Channel = require('./channel')
 
 class Socket {
@@ -73,9 +72,6 @@ class Socket {
     this.endPoint             = `${endPoint}/${TRANSPORTS.websocket}`
     this.heartbeatTimer       = null
     this.pendingHeartbeatRef  = null
-    this.reconnectTimer       = new Timer(() => {
-      this.disconnect(() => this.connect())
-    }, this.reconnectAfterMs)
   }
 
   endPointURL(){
@@ -126,7 +122,6 @@ class Socket {
   onConnOpen(){
     this.log("transport", `connected to ${this.endPointURL()}`)
     this.flushSendBuffer()
-    this.reconnectTimer.reset()
     if(!this.conn.skipHeartbeat){
       clearInterval(this.heartbeatTimer)
       this.heartbeatTimer = setInterval(() => this.sendHeartbeat(), this.heartbeatIntervalMs)
@@ -138,7 +133,6 @@ class Socket {
     this.log("transport", "close", event)
     this.triggerChanError()
     clearInterval(this.heartbeatTimer)
-    this.reconnectTimer.scheduleTimeout()
     this.stateChangeCallbacks.close.forEach( callback => callback(event) )
   }
 
